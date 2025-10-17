@@ -31,5 +31,3 @@ def detect_image(image_path):
         return f"{result}", confidence
     except Exception as e:
         return f"Erreur : {str(e)}", 0.0
-
-    

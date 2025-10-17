@@ -1,0 +1,26 @@
+# Fichiers Python compilés
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environnement virtuel
+venv/
+env/
+
+# Fichiers de logs
+*.log
+
+# Dossiers de dépendances
+node_modules/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers de configuration IDE
+.vscode/
+.idea/
+
+# Fichiers temporaires
+*.tmp
+*.swp

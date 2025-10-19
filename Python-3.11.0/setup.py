@@ -46,13 +46,7 @@ with warnings.catch_warnings():
         DeprecationWarning
     )
 
-    from distutils.command.build_ext import build_ext
-    from distutils.command.build_scripts import build_scripts
-    from distutils.command.install import install
-    from distutils.command.install_lib import install_lib
-    from distutils.core import Extension, setup
-    from distutils.errors import CCompilerError, DistutilsError
-    from distutils.spawn import find_executable
+    
 
 
 # This global variable is used to hold the list of modules to be disabled.

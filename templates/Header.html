@@ -1,0 +1,79 @@
+<header class="bg-gray-100 sticky top-0 z-50 border-b">
+    <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+        <!-- Logo -->
+        <div class="flex items-center space-x-2">
+            <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span class="text-xl font-semibold">DeepDetect</span>
+        </div>
+
+        <!-- Navigation (desktop) -->
+        <nav class="hidden md:flex space-x-8">
+            <a href="#accueil" class="hover:text-blue-600">Accueil</a>
+            <a href="#comment-ca-marche" class="hover:text-blue-600">Comment ça marche</a>
+            <a href="#analyse" class="hover:text-blue-600">Analyser</a>
+            <a href="#a-propos" class="hover:text-blue-600">À propos</a>
+
+            {% if 'user_id' in session %}
+                <span class="text-gray-600">Bonjour, {{ username }} !</span>
+                <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+                    Déconnexion
+                </a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                    Connexion
+                </a>
+            {% endif %}
+        </nav>
+
+        <!-- Bouton menu mobile -->
+        <div class="md:hidden">
+            <button id="menu-toggle" class="text-gray-600 hover:text-gray-900">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Menu mobile -->
+        <div id="mobile-menu"
+            class="hidden md:hidden absolute top-16 right-4 bg-white border rounded-lg shadow-lg p-4 space-y-2">
+            <a href="#accueil" class="block py-2 hover:text-blue-600">Accueil</a>
+            <a href="#comment-ca-marche" class="block py-2 hover:text-blue-600">Comment ça marche</a>
+            <a href="#analyse" class="block py-2 hover:text-blue-600">Analyser</a>
+            <a href="#a-propos" class="block py-2 hover:text-blue-600">À propos</a>
+
+            {% if 'user_id' in session %}
+                <span class="block py-2 text-gray-600">Bonjour, {{ username }} !</span>
+                <a href="{{ url_for('logout') }}"
+                    class="block py-2 bg-red-600 text-white text-center rounded hover:bg-red-700 transition">
+                    Déconnexion
+                </a>
+            {% else %}
+                <a href="{{ url_for('login') }}"
+                    class="block py-2 bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition">
+                    Connexion
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<!-- Script menu responsive -->
+<script>
+    const toggleButton = document.getElementById('menu-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    toggleButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!mobileMenu.contains(e.target) && !toggleButton.contains(e.target)) {
+            mobileMenu.classList.add('hidden');
+        }
+    });
+</script>

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="min-h-screen bg-gray-100 flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Connexion</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100
+                                border border-{{ 'green' if category == 'success' else 'red' }}-400
+                                text-{{ 'green' if category == 'success' else 'red' }}-700
+                                p-3 mb-4 rounded">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-4">
+                {{ form.username.label(class="block text-gray-700") }}
+                {{ form.username(class="w-full p-2 border rounded") }}
+                {% for error in form.username.errors %}
+                    <span class="text-red-600 text-sm">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-4">
+                {{ form.password.label(class="block text-gray-700") }}
+                {{ form.password(class="w-full p-2 border rounded") }}
+                {% for error in form.password.errors %}
+                    <span class="text-red-600 text-sm">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            {{ form.submit(class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition") }}
+        </form>
+
+        <p class="mt-4 text-center">
+            <a href="{{ url_for('register') }}" class="text-blue-600 hover:underline">
+                Pas encore inscrit ? Créez un compte
+            </a>
+        </p>
+    </div>
+</section>
+{% endblock %}

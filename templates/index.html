@@ -1,34 +1,192 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Détecteur de Deepfakes</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Détecteur de Deepfakes Moderne</h1>
-        <p>Uploadez une image/vidéo ou entrez une URL pour vérifier si c'est un deepfake.</p>
-        
-        <form action="/detect" method="POST" enctype="multipart/form-data">
-            <div class="input-group">
-                <label>Type de média :</label>
-                <input type="radio" name="media_type" value="image" checked> Image
-                <input type="radio" name="media_type" value="video"> Vidéo
-            </div>
-            <div class="input-group">
-                <label for="file">Uploadez un fichier :</label>
-                <input type="file" id="file" name="file" accept=".jpg,.png,.mp4">
-            </div>
-            <div class="input-group">
-                <label for="url">Ou entrez une URL :</label>
-                <input type="text" id="url" name="url" placeholder="https://exemple.com/media">
-            </div>
-            <button type="submit" class="btn primary">Détecter</button>
-        </form>
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Hero Section -->
+<section id="accueil" class="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-200 py-16 sm:py-24">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-12 items-center">
+      <div class="space-y-8">
+        <div class="space-y-4">
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            IA de pointe
+          </span>
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+            Détectez les <span class="text-blue-600">deepfakes</span> en quelques secondes
+          </h1>
+          <p class="text-lg text-gray-600 max-w-lg">
+            Notre technologie d'IA avancée analyse vos médias avec une précision de plus de 95%.
+          </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="{{ url_for('analyze') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg text-base font-medium">
+            Analyser maintenant
+          </a>
+          <a href="#" class="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg text-base font-medium">
+            Voir la démo
+          </a>
+        </div>
+
+        <div class="flex flex-wrap gap-8 pt-8 border-t border-gray-200">
+          <div class="text-center">
+            <div class="text-2xl font-bold text-gray-900">95%</div>
+            <div class="text-sm text-gray-600">Précision</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-gray-900">1M+</div>
+            <div class="text-sm text-gray-600">Analyses</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold text-gray-900">&lt;5s</div>
+            <div class="text-sm text-gray-600">Temps</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative">
+        <div class="relative rounded-2xl overflow-hidden shadow-2xl">
+          <img src="https://images.unsplash.com/photo-1694954960354-f671619ea37d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+               alt="IA Sécurité"
+               class="w-full h-[400px] object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-blue-600/20 to-transparent"></div>
+        </div>
+
+        <div class="absolute -top-4 -left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+          <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span class="text-sm">Analyse en cours...</span>
+          </div>
+        </div>
+
+        <div class="absolute -bottom-4 -right-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+          <div class="flex items-center space-x-2">
+            <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span class="text-sm">Authentique</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
-</html>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section id="comment-ca-marche" class="py-16 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Comment ça marche ?</h2>
+      <p class="text-lg text-gray-600 max-w-3xl mx-auto">Analyse pixel par pixel avec des réseaux de neurones.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+      <div class="bg-white border rounded-lg p-6 shadow-lg">
+        <h3 class="font-bold">IA Avancée</h3>
+        <p class="text-gray-600">Précision 95%</p>
+      </div>
+      <!-- Autres cartes à ajouter ici -->
+    </div>
+
+    <div class="bg-gray-100 rounded-2xl p-8">
+      <h3 class="text-2xl font-bold text-center mb-8">Processus en 3 étapes</h3>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">1</div>
+          <h4 class="font-semibold mb-2">Upload</h4>
+          <p class="text-sm text-gray-600">Glissez-déposez vos fichiers</p>
+        </div>
+        <!-- Étapes 2 et 3 à ajouter -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Upload Section -->
+<section id="analyse" class="py-16 bg-gray-100">
+  <div class="max-w-4xl mx-auto px-4">
+    <h2 class="text-3xl font-bold text-center mb-4">Analysez vos contenus</h2>
+    <p class="text-lg text-gray-600 text-center mb-12">Uploadez images ou vidéos</p>
+
+    <form method="post" action="{{ url_for('analyze') }}" enctype="multipart/form-data">
+      {{ form.csrf_token }}
+      <div class="border-2 border-dashed rounded-lg p-8 text-center" id="drop-zone">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <p>Glissez-déposez ou</p>
+        <input type="file" name="files" multiple accept="image/*,video/*" class="hidden" id="file-input">
+        <button type="button" onclick="document.getElementById('file-input').click()"
+                class="border px-4 py-2 rounded text-blue-600">
+          Parcourir
+        </button>
+      </div>
+
+      <div id="file-list" class="mt-6"></div>
+      <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg mt-4">Analyser</button>
+    </form>
+
+    {% if results %}
+    <div class="mt-8">
+      <h3>Résultats</h3>
+      {% for result in results %}
+      <div class="border rounded-lg p-4 mt-4">
+        <p>{{ result.filename }} - Confiance: {{ result.confidence }}% - {{ result.details }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- About Section -->
+<section id="a-propos" class="py-16 bg-gray-100">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="grid lg:grid-cols-2 gap-12">
+      <div class="space-y-6">
+        <div>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            Enjeu critique
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Pourquoi détecter les deepfakes ?</h2>
+          <p class="text-lg text-gray-600 leading-relaxed">
+            Menace pour la vérité et la confiance...
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <div class="flex items-start space-x-3">
+            <div class="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+            <div>
+              <h4 class="font-semibold">Désinformation</h4>
+              <p class="text-sm text-gray-600">Faux actualités...</p>
+            </div>
+          </div>
+          <!-- Autres points à ajouter ici -->
+        </div>
+
+        <a href="{{ url_for('analyze') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg mt-6 inline-block">
+          Protéger mon contenu
+        </a>
+      </div>
+
+      <div class="relative">
+        <div class="rounded-2xl overflow-hidden shadow-xl">
+          <img src="https://images.unsplash.com/photo-1654588831193-0285dab84d5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+               alt="Cybersécurité"
+               class="w-full h-[400px] object-cover">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

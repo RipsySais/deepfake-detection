@@ -1,47 +1,46 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- Hero Section -->
+<!-- Hero -->
 <section id="accueil" class="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-200 py-16 sm:py-24">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="grid lg:grid-cols-2 gap-12 items-center">
       <div class="space-y-8">
         <div class="space-y-4">
           <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            IA de pointe
+            Analyse par réseau de neurones
           </span>
           <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-            Détectez les <span class="text-blue-600">deepfakes</span> en quelques secondes
+            Détectez les <span class="text-blue-600">deepfakes</span> dans vos images et vidéos
           </h1>
           <p class="text-lg text-gray-600 max-w-lg">
-            Notre technologie d'IA avancée analyse vos médias avec une précision de plus de 95%.
+            Un modèle de vision (Vision Transformer) estime la probabilité qu'un
+            contenu soit manipulé. Le résultat est une indication, à confirmer
+            par d'autres sources.
           </p>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-4">
-          <a href="{{ url_for('analyze') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg text-base font-medium">
+          <a href="#analyse" class="bg-blue-600 text-white px-6 py-3 rounded-lg text-base font-medium text-center hover:bg-blue-700 transition">
             Analyser maintenant
           </a>
-          <a href="#" class="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg text-base font-medium">
-            Voir la démo
+          <a href="#comment-ca-marche" class="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg text-base font-medium text-center hover:bg-blue-50 transition">
+            Comment ça marche
           </a>
         </div>
 
         <div class="flex flex-wrap gap-8 pt-8 border-t border-gray-200">
           <div class="text-center">
-            <div class="text-2xl font-bold text-gray-900">95%</div>
-            <div class="text-sm text-gray-600">Précision</div>
+            <div class="text-2xl font-bold text-gray-900">Images</div>
+            <div class="text-sm text-gray-600">JPG, PNG, WEBP</div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-bold text-gray-900">1M+</div>
-            <div class="text-sm text-gray-600">Analyses</div>
+            <div class="text-2xl font-bold text-gray-900">Vidéos</div>
+            <div class="text-sm text-gray-600">MP4, MOV, AVI, WEBM</div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-bold text-gray-900">&lt;5s</div>
-            <div class="text-sm text-gray-600">Temps</div>
+            <div class="text-2xl font-bold text-gray-900">Privé</div>
+            <div class="text-sm text-gray-600">Fichiers supprimés après analyse</div>
           </div>
         </div>
       </div>
@@ -49,46 +48,39 @@
       <div class="relative">
         <div class="relative rounded-2xl overflow-hidden shadow-2xl">
           <img src="https://images.unsplash.com/photo-1694954960354-f671619ea37d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-               alt="IA Sécurité"
+               alt="Illustration intelligence artificielle"
                class="w-full h-[400px] object-cover">
           <div class="absolute inset-0 bg-gradient-to-t from-blue-600/20 to-transparent"></div>
-        </div>
-
-        <div class="absolute -top-4 -left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-          <div class="flex items-center space-x-2">
-            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span class="text-sm">Analyse en cours...</span>
-          </div>
-        </div>
-
-        <div class="absolute -bottom-4 -right-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-          <div class="flex items-center space-x-2">
-            <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            <span class="text-sm">Authentique</span>
-          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Features Section -->
+<!-- Comment ça marche -->
 <section id="comment-ca-marche" class="py-16 bg-white">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-16">
       <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Comment ça marche ?</h2>
-      <p class="text-lg text-gray-600 max-w-3xl mx-auto">Analyse pixel par pixel avec des réseaux de neurones.</p>
+      <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+        Le modèle apprend, sur des milliers d'exemples, les traces
+        statistiques laissées par les manipulations.
+      </p>
     </div>
 
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
       <div class="bg-white border rounded-lg p-6 shadow-lg">
-        <h3 class="font-bold">IA Avancée</h3>
-        <p class="text-gray-600">Précision 95%</p>
+        <h3 class="font-bold mb-2">Réseau de neurones</h3>
+        <p class="text-gray-600">Un Vision Transformer pré-entraîné classe chaque image en « réel » ou « fake ».</p>
       </div>
-      <!-- Autres cartes à ajouter ici -->
+      <div class="bg-white border rounded-lg p-6 shadow-lg">
+        <h3 class="font-bold mb-2">Visage ciblé</h3>
+        <p class="text-gray-600">Quand un visage est détecté, l'analyse se concentre dessus.</p>
+      </div>
+      <div class="bg-white border rounded-lg p-6 shadow-lg">
+        <h3 class="font-bold mb-2">Vidéos</h3>
+        <p class="text-gray-600">Plusieurs images réparties dans la vidéo sont analysées, puis moyennées.</p>
+      </div>
     </div>
 
     <div class="bg-gray-100 rounded-2xl p-8">
@@ -96,69 +88,105 @@
       <div class="grid md:grid-cols-3 gap-8">
         <div class="text-center">
           <div class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">1</div>
-          <h4 class="font-semibold mb-2">Upload</h4>
-          <p class="text-sm text-gray-600">Glissez-déposez vos fichiers</p>
+          <h4 class="font-semibold mb-2">Envoi</h4>
+          <p class="text-sm text-gray-600">Glissez-déposez vos fichiers.</p>
         </div>
-        <!-- Étapes 2 et 3 à ajouter -->
+        <div class="text-center">
+          <div class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">2</div>
+          <h4 class="font-semibold mb-2">Analyse</h4>
+          <p class="text-sm text-gray-600">Le modèle calcule une probabilité de manipulation.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">3</div>
+          <h4 class="font-semibold mb-2">Résultat</h4>
+          <p class="text-sm text-gray-600">Le score et son historique s'affichent ci-dessous.</p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Upload Section -->
+<!-- Analyse -->
 <section id="analyse" class="py-16 bg-gray-100">
   <div class="max-w-4xl mx-auto px-4">
     <h2 class="text-3xl font-bold text-center mb-4">Analysez vos contenus</h2>
-    <p class="text-lg text-gray-600 text-center mb-12">Uploadez images ou vidéos</p>
+    <p class="text-lg text-gray-600 text-center mb-12">
+      Jusqu'à 5 images ou vidéos par envoi.
+    </p>
 
-    <form method="post" action="{{ url_for('analyze') }}" enctype="multipart/form-data">
-      {{ form.csrf_token }}
-      <div class="border-2 border-dashed rounded-lg p-8 text-center" id="drop-zone">
+    {% if g.user %}
+    <form method="post" action="{{ url_for('analyze') }}" enctype="multipart/form-data" id="upload-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="border-2 border-dashed rounded-lg p-8 text-center bg-white" id="drop-zone">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
-        <p>Glissez-déposez ou</p>
-        <input type="file" name="files" multiple accept="image/*,video/*" class="hidden" id="file-input">
-        <button type="button" onclick="document.getElementById('file-input').click()"
-                class="border px-4 py-2 rounded text-blue-600">
+        <p class="my-2">Glissez-déposez ou</p>
+        <input type="file" name="files" multiple
+               accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.avi,.webm"
+               class="hidden" id="file-input">
+        <button type="button" id="browse-button"
+                class="border px-4 py-2 rounded text-blue-600 hover:bg-blue-50">
           Parcourir
         </button>
       </div>
 
-      <div id="file-list" class="mt-6"></div>
-      <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg mt-4">Analyser</button>
+      <ul id="file-list" class="mt-6 space-y-1 text-sm text-gray-700"></ul>
+      <p id="file-error" class="mt-2 text-sm text-red-600"></p>
+      <button type="submit" id="submit-button"
+              class="bg-blue-600 text-white px-6 py-3 rounded-lg mt-4 hover:bg-blue-700 transition disabled:opacity-50">
+        Analyser
+      </button>
     </form>
 
-    {% if results %}
-    <div class="mt-8">
-      <h3>Résultats</h3>
-      {% for result in results %}
-      <div class="border rounded-lg p-4 mt-4">
-        <p>{{ result.filename }} - Confiance: {{ result.confidence }}% - {{ result.details }}</p>
-      </div>
-      {% endfor %}
+    <div class="mt-12">
+      <h3 class="text-xl font-bold mb-4">Historique</h3>
+      {% if results %}
+        {% for result in results %}
+        <div class="border rounded-lg p-4 mt-4 bg-white">
+          <div class="flex flex-wrap justify-between gap-2">
+            <p class="font-medium break-all">{{ result.filename }}</p>
+            {% if result.is_deepfake %}
+            <span class="px-3 py-1 rounded-full text-sm bg-red-100 text-red-700">Probablement manipulé</span>
+            {% else %}
+            <span class="px-3 py-1 rounded-full text-sm bg-green-100 text-green-700">Probablement authentique</span>
+            {% endif %}
+          </div>
+          <p class="text-sm text-gray-600 mt-2">
+            Score de manipulation : <strong>{{ result.fake_score|percent }}</strong>
+            {% if result.file_type == 'video' %}· {{ result.details }}{% endif %}
+            · {{ result.timestamp.strftime('%d/%m/%Y %H:%M') }} UTC
+          </p>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-gray-600">Aucune analyse pour le moment.</p>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="bg-white border rounded-lg p-8 text-center">
+      <p class="mb-4">Connectez-vous pour analyser des fichiers.</p>
+      <a href="{{ url_for('login') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg inline-block hover:bg-blue-700 transition">Connexion</a>
+      <a href="{{ url_for('register') }}" class="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg inline-block ml-2 hover:bg-blue-50 transition">Créer un compte</a>
     </div>
     {% endif %}
   </div>
 </section>
 
-<!-- About Section -->
-<section id="a-propos" class="py-16 bg-gray-100">
+<!-- À propos -->
+<section id="a-propos" class="py-16 bg-white">
   <div class="max-w-7xl mx-auto px-4">
     <div class="grid lg:grid-cols-2 gap-12">
       <div class="space-y-6">
         <div>
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800 mb-3">
             Enjeu critique
           </span>
           <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Pourquoi détecter les deepfakes ?</h2>
           <p class="text-lg text-gray-600 leading-relaxed">
-            Menace pour la vérité et la confiance...
+            Les contenus synthétiques deviennent de plus en plus réalistes
+            et menacent la confiance accordée aux images et aux vidéos.
           </p>
         </div>
 
@@ -167,21 +195,30 @@
             <div class="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
             <div>
               <h4 class="font-semibold">Désinformation</h4>
-              <p class="text-sm text-gray-600">Faux actualités...</p>
+              <p class="text-sm text-gray-600">Faux contenus qui imitent des événements ou des personnes.</p>
             </div>
           </div>
-          <!-- Autres points à ajouter ici -->
+          <div class="flex items-start space-x-3">
+            <div class="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+            <div>
+              <h4 class="font-semibold">Usurpation d'identité</h4>
+              <p class="text-sm text-gray-600">Visages et voix détournés pour tromper ou escroquer.</p>
+            </div>
+          </div>
+          <div class="flex items-start space-x-3">
+            <div class="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+            <div>
+              <h4 class="font-semibold">Limites de la détection</h4>
+              <p class="text-sm text-gray-600">Aucun détecteur n'est infaillible : croisez toujours les sources.</p>
+            </div>
+          </div>
         </div>
-
-        <a href="{{ url_for('analyze') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg mt-6 inline-block">
-          Protéger mon contenu
-        </a>
       </div>
 
       <div class="relative">
         <div class="rounded-2xl overflow-hidden shadow-xl">
           <img src="https://images.unsplash.com/photo-1654588831193-0285dab84d5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-               alt="Cybersécurité"
+               alt="Illustration cybersécurité"
                class="w-full h-[400px] object-cover">
         </div>
       </div>
@@ -189,4 +226,3 @@
   </div>
 </section>
 {% endblock %}
-

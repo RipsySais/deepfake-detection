@@ -1,205 +1,295 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
-from flask_mail import Mail, Message
-from flask_wtf import FlaskForm, CSRFProtect
-from wtforms import StringField, PasswordField, EmailField, SubmitField
-from wtforms.validators import DataRequired, Email, Length, EqualTo
-from werkzeug.utils import secure_filename
+"""Application Flask DeepDetect : comptes utilisateurs et analyse de médias."""
+import logging
 import os
-import time
-from datetime import datetime
-from deepface import DeepFace
+import secrets
+import smtplib
+import uuid
+from functools import wraps
 
-app = Flask(__name__)
-app.secret_key = 'your_secret_key_2025'  # Remplacez par une clé sécurisée
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your_email@gmail.com'  # Remplacez par votre email
-app.config['MAIL_PASSWORD'] = 'your_app_password'     # Mot de passe d'application Gmail
-app.config['WTF_CSRF_ENABLED'] = True
+from flask import (Flask, current_app, flash, g, redirect, render_template,
+                   request, session, url_for)
+from flask_mail import Message
+from itsdangerous import (BadSignature, SignatureExpired,
+                          URLSafeTimedSerializer)
+from werkzeug.utils import secure_filename
 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+from config import Config
+from detector import DeepfakeDetector, DetectorError, file_kind
+from extensions import bcrypt, csrf, db, mail
+from forms import LoginForm, RegisterForm
+from models import AnalysisResult, User
 
-db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)
-mail = Mail(app)
-csrf = CSRFProtect(app)
+VERIFY_SALT = 'email-verify'
 
 
-# Modèles
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
-    verified = db.Column(db.Boolean, default=False)
+def create_app(config=None, detector=None):
+    """Crée et configure l'application (utile aussi pour les tests)."""
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    if config:
+        app.config.update(config)
+
+    if not app.config.get('SECRET_KEY'):
+        app.logger.warning(
+            'SECRET_KEY absente : une clé temporaire est utilisée, les '
+            'sessions seront perdues au redémarrage.')
+        app.config['SECRET_KEY'] = secrets.token_hex(32)
+    if not app.config.get('UPLOAD_FOLDER'):
+        app.config['UPLOAD_FOLDER'] = os.path.join(
+            app.instance_path, 'uploads')
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+    db.init_app(app)
+    bcrypt.init_app(app)
+    mail.init_app(app)
+    csrf.init_app(app)
+
+    if detector is None:
+        detector = DeepfakeDetector(
+            model_id=app.config['MODEL_ID'],
+            threshold=app.config['FAKE_THRESHOLD'],
+            max_frames=app.config['MAX_VIDEO_FRAMES'],
+            use_face_crop=app.config['USE_FACE_CROP'])
+    app.extensions['detector'] = detector
+
+    with app.app_context():
+        db.create_all()
+
+    register_hooks(app)
+    register_routes(app)
+    register_commands(app)
+    return app
 
 
-class AnalysisResult(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(255), nullable=False)
-    file_type = db.Column(db.String(50), nullable=False)
-    confidence = db.Column(db.Float, nullable=False)
-    is_deepfake = db.Column(db.Boolean, nullable=False)
-    details = db.Column(db.String(255))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+def login_required(view):
+    """Réserve une route aux utilisateurs connectés et vérifiés."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if g.user is None:
+            flash('Veuillez vous connecter pour continuer.', 'error')
+            return redirect(url_for('login'))
+        return view(*args, **kwargs)
+    return wrapped
 
 
-with app.app_context():
-    db.create_all()
+def make_token(user):
+    """Crée un token signé et daté pour vérifier l'email d'un utilisateur."""
+    serializer = URLSafeTimedSerializer(
+        current_app.config['SECRET_KEY'], salt=VERIFY_SALT)
+    return serializer.dumps({'uid': user.id})
 
 
-# Formulaires
-class LoginForm(FlaskForm):
-    username = StringField("Nom d'utilisateur", validators=[DataRequired()])
-    password = PasswordField('Mot de passe', validators=[DataRequired()])
-    submit = SubmitField('Connexion')
-
-
-class RegisterForm(FlaskForm):
-    username = StringField("Nom d'utilisateur", validators=[DataRequired(), Length(min=4, max=80)])
-    email = EmailField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Mot de passe', validators=[DataRequired(), Length(min=6),
-                             EqualTo('confirm_password', message='Les mots de passe doivent correspondre')])
-    confirm_password = PasswordField('Confirmer le mot de passe', validators=[DataRequired()])
-    submit = SubmitField("S'inscrire")
-
-
-# Routes
-@app.route('/')
-def index():
-    if 'user_id' not in session or not User.query.get(session['user_id']).verified:
-        return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    results = AnalysisResult.query.filter_by(user_id=session['user_id']) \
-                                  .order_by(AnalysisResult.timestamp.desc()) \
-                                  .all()
-    return render_template('index.html', username=user.username, results=results)
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        username = form.username.data
-        password = form.password.data
-        user = User.query.filter_by(username=username).first()
-        if user and bcrypt.check_password_hash(user.password, password) and user.verified:
-            session['user_id'] = user.id
-            flash('Connexion réussie !', 'success')
-            return redirect(url_for('index'))
-        flash("Nom d'utilisateur, mot de passe ou email non vérifié incorrect.", 'error')
-    return render_template('login.html', form=form)
-
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    form = RegisterForm()
-    if form.validate_on_submit():
-        username = form.username.data
-        email = form.email.data
-        password = form.password.data
-
-        if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
-            flash('Utilisateur ou email déjà existant.', 'error')
-            return redirect(url_for('register'))
-
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_user = User(username=username, email=email, password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
-
-        # Envoyer email de vérification
-        token = f"verify-{new_user.id}-{time.time()}"  # Token simple (à améliorer)
-        msg = Message('Vérification de votre email',
-                      sender=app.config['MAIL_USERNAME'],
-                      recipients=[email])
-        msg.body = f" Cliquez ici pour vérifier votre email : {url_for('verify_email', token=token, _external=True)}"
-        mail.send(msg)
-
-        flash('Un email de vérification a été envoyé. Vérifiez votre boîte.', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html', form=form)
-
-
-@app.route('/verify/<token>')
-def verify_email(token):
+def read_token(token):
+    """Retourne l'id utilisateur d'un token valide, sinon None."""
+    serializer = URLSafeTimedSerializer(
+        current_app.config['SECRET_KEY'], salt=VERIFY_SALT)
     try:
-        user_id = int(token.split('-')[1])
-        user = User.query.get(user_id)
-        is_valid = time.time() - float(token.split('-')[2]) < 3600  # 1 heure de validité
-        if user and not user.verified and is_valid:
+        data = serializer.loads(
+            token, max_age=current_app.config['VERIFY_TOKEN_MAX_AGE'])
+    except (BadSignature, SignatureExpired):
+        return None
+    return data.get('uid') if isinstance(data, dict) else None
+
+
+def send_verification(user):
+    """Envoie le lien de vérification ; retourne False en mode développement.
+
+    Sans MAIL_USERNAME, aucun email n'est envoyé : le lien est écrit dans les
+    logs du serveur pour pouvoir tester l'inscription en local.
+    """
+    link = url_for('verify_email', token=make_token(user), _external=True)
+    if not current_app.config['MAIL_USERNAME']:
+        current_app.logger.warning('Lien de vérification : %s', link)
+        return False
+    message = Message(
+        'Vérification de votre email',
+        sender=current_app.config['MAIL_USERNAME'],
+        recipients=[user.email])
+    message.body = (
+        f'Bonjour {user.username},\n\nCliquez sur ce lien pour vérifier '
+        f'votre email (valable 1 heure) :\n{link}\n')
+    mail.send(message)
+    return True
+
+
+def register_hooks(app):
+    """Déclare les fonctions exécutées avant chaque requête."""
+    @app.before_request
+    def load_user():
+        """Charge l'utilisateur connecté (ou None) dans `g.user`."""
+        g.user = None
+        user_id = session.get('user_id')
+        if user_id is not None:
+            user = db.session.get(User, user_id)
+            if user is not None and user.verified:
+                g.user = user
+            else:
+                session.clear()
+
+    @app.errorhandler(413)
+    def too_large(error):
+        """Réponse quand l'envoi dépasse la taille maximale."""
+        limit = app.config['MAX_CONTENT_LENGTH'] // (1024 * 1024)
+        flash(f'Fichiers trop volumineux (maximum {limit} Mo).', 'error')
+        return redirect(url_for('index', _anchor='analyse'))
+
+    @app.template_filter('percent')
+    def percent(value):
+        """Formate une probabilité (0 à 1) en pourcentage."""
+        return f'{value * 100:.0f} %'
+
+
+def register_routes(app):
+    """Déclare les routes de l'application."""
+
+    @app.route('/')
+    def index():
+        """Page d'accueil, avec l'historique si l'utilisateur est connecté."""
+        results = []
+        if g.user is not None:
+            results = (AnalysisResult.query
+                       .filter_by(user_id=g.user.id)
+                       .order_by(AnalysisResult.timestamp.desc())
+                       .limit(20).all())
+        return render_template('index.html', results=results)
+
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        """Connexion d'un utilisateur dont l'email est vérifié."""
+        form = LoginForm()
+        if form.validate_on_submit():
+            user = User.query.filter_by(username=form.username.data).first()
+            valid = user and bcrypt.check_password_hash(
+                user.password, form.password.data)
+            if valid and not user.verified:
+                flash('Email non vérifié : consultez le lien reçu.', 'error')
+            elif valid:
+                session.clear()
+                session['user_id'] = user.id
+                flash('Connexion réussie !', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash("Nom d'utilisateur ou mot de passe incorrect.", 'error')
+        return render_template('login.html', form=form)
+
+    @app.route('/register', methods=['GET', 'POST'])
+    def register():
+        """Inscription puis envoi du lien de vérification."""
+        form = RegisterForm()
+        if form.validate_on_submit():
+            username = form.username.data
+            email = form.email.data.lower()
+            taken = (User.query.filter_by(username=username).first()
+                     or User.query.filter_by(email=email).first())
+            if taken:
+                flash('Utilisateur ou email déjà existant.', 'error')
+                return redirect(url_for('register'))
+
+            hashed = bcrypt.generate_password_hash(
+                form.password.data).decode('utf-8')
+            user = User(username=username, email=email, password=hashed)
+            db.session.add(user)
+            db.session.commit()
+            try:
+                sent = send_verification(user)
+            except (smtplib.SMTPException, OSError):
+                app.logger.exception('Échec de l\'envoi de l\'email')
+                db.session.delete(user)
+                db.session.commit()
+                flash("L'email n'a pas pu être envoyé. Réessayez plus "
+                      "tard.", 'error')
+                return redirect(url_for('register'))
+            if sent:
+                flash('Un email de vérification a été envoyé.', 'success')
+            else:
+                flash('Mode développement : le lien de vérification est '
+                      'affiché dans la console du serveur.', 'success')
+            return redirect(url_for('login'))
+        return render_template('register.html', form=form)
+
+    @app.route('/verify/<token>')
+    def verify_email(token):
+        """Active le compte si le token signé est valide et non expiré."""
+        user_id = read_token(token)
+        user = db.session.get(User, user_id) if user_id else None
+        if user is None:
+            flash('Lien de vérification invalide ou expiré.', 'error')
+        else:
             user.verified = True
             db.session.commit()
-            flash('Email vérifié avec succès ! Connectez-vous.', 'success')
-        else:
-            flash('Lien de vérification invalide ou expiré.', 'error')
-    except (IndexError, ValueError):
-        flash('Lien de vérification invalide.', 'error')
-    return redirect(url_for('login'))
-
-
-@app.route('/logout')
-def logout():
-    session.pop('user_id', None)
-    flash('Déconnexion réussie !', 'success')
-    return redirect(url_for('login'))
-
-
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    if 'user_id' not in session or not User.query.get(session['user_id']).verified:
-        flash('Veuillez vous connecter et vérifier votre email.', 'error')
+            flash('Email vérifié ! Vous pouvez vous connecter.', 'success')
         return redirect(url_for('login'))
 
-    files = request.files.getlist('files')
-    new_results = []
+    @app.route('/logout')
+    def logout():
+        """Déconnexion."""
+        session.clear()
+        flash('Déconnexion réussie !', 'success')
+        return redirect(url_for('login'))
 
-    for file in files:
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
+    @app.post('/analyze')
+    @login_required
+    def analyze():
+        """Analyse les fichiers envoyés puis enregistre les résultats."""
+        files = [f for f in request.files.getlist('files') if f.filename]
+        back = redirect(url_for('index', _anchor='analyse'))
+        if not files:
+            flash('Aucun fichier sélectionné.', 'error')
+            return back
+        limit = app.config['MAX_FILES_PER_REQUEST']
+        if len(files) > limit:
+            flash(f'Maximum {limit} fichiers par analyse.', 'error')
+            return back
 
+        detector = app.extensions['detector']
+        done = 0
+        for upload in files:
+            name = secure_filename(upload.filename) or 'fichier'
+            kind = file_kind(name)
+            if kind is None:
+                flash(f'« {name} » : format non pris en charge.', 'error')
+                continue
+            path = os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                f"{uuid.uuid4().hex}.{name.rsplit('.', 1)[1].lower()}")
+            upload.save(path)
             try:
-                result = DeepFace.verify(
-                    img1_path=file_path,
-                    model_name='DeepFace',
-                    detector_backend='opencv'
-                )
-                confidence = result['distance'] * 100  # À calibrer
-                is_deepfake = confidence > 70  # Seuil ajustable
-                details = "Deepfake détecté" if is_deepfake else "Authentique"
-            except Exception as e:
-                confidence = 0
-                is_deepfake = False
-                details = f"Erreur d'analyse : {str(e)}"
-
-            record = AnalysisResult(
-                filename=filename,
-                file_type='image' if filename.lower().endswith(('.jpg', '.png')) else 'video',
-                confidence=confidence,
-                is_deepfake=is_deepfake,
-                details=details,
-                user_id=session['user_id']
-            )
-            db.session.add(record)
-            db.session.commit()
-            new_results.append(record)
-
-    flash('Analyse terminée !', 'success')
-    return redirect(url_for('index'))
+                verdict = detector.analyze(path, kind)
+            except DetectorError as error:
+                flash(f'« {name} » : {error}', 'error')
+                continue
+            except Exception:
+                app.logger.exception('Erreur pendant l\'analyse de %s', name)
+                flash(f'« {name} » : erreur inattendue pendant l\'analyse.',
+                      'error')
+                continue
+            finally:
+                if os.path.exists(path):
+                    os.remove(path)
+            db.session.add(AnalysisResult(
+                filename=name,
+                file_type=kind,
+                fake_score=verdict.fake_probability,
+                is_deepfake=verdict.is_deepfake,
+                frames_analyzed=verdict.frames_analyzed,
+                details=verdict.details,
+                user_id=g.user.id))
+            done += 1
+        db.session.commit()
+        if done:
+            flash(f'{done} fichier(s) analysé(s).', 'success')
+        return back
 
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'png', 'mp4', 'mov'}
+def register_commands(app):
+    """Déclare les commandes `flask --app app <commande>`."""
+    @app.cli.command('load-model')
+    def load_model():
+        """Télécharge et charge le modèle à l'avance."""
+        app.extensions['detector'].load()
+        print('Modèle chargé.')
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    logging.basicConfig(level=logging.INFO)
+    create_app().run(debug=os.environ.get('FLASK_DEBUG') == '1')

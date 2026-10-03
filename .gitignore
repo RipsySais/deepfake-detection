@@ -1,23 +1,28 @@
-# Fichiers Python compilés
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
 
-# Environnement virtuel
+# Environnements virtuels
 venv/
 env/
+.venv/
 
-# Fichiers de logs
+# Secrets et données locales
+.env
+instance/
+static/uploads/
+
+# Sources de Python (ne pas versionner)
+Python-3.11.0/
+Python-3.11.0.tgz
+
+# Logs, dépendances, système, IDE
 *.log
-
-# Dossiers de dépendances
 node_modules/
-
-# Fichiers système
 .DS_Store
 Thumbs.db
-
-# Fichiers de configuration IDE
 .vscode/
 .idea/
 

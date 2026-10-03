@@ -1,0 +1,15 @@
+# Application web
+Flask>=3.0,<4
+Flask-SQLAlchemy>=3.1,<4
+Flask-Bcrypt>=1.0
+Flask-Mail>=0.10
+Flask-WTF>=1.2
+email-validator>=2.0
+python-dotenv>=1.0
+
+# Détection (installer torch en version CPU avant, voir README)
+torch>=2.2
+transformers>=4.40
+Pillow>=10.0
+numpy>=1.26
+opencv-python-headless>=4.9,<5

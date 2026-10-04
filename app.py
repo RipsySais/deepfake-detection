@@ -11,6 +11,7 @@ from flask import (Flask, current_app, flash, g, redirect, render_template,
 from flask_mail import Message
 from itsdangerous import (BadSignature, SignatureExpired,
                           URLSafeTimedSerializer)
+from sqlalchemy import inspect, text
 from werkzeug.utils import secure_filename
 
 from config import Config
@@ -54,11 +55,28 @@ def create_app(config=None, detector=None):
 
     with app.app_context():
         db.create_all()
+        upgrade_schema()
 
     register_hooks(app)
     register_routes(app)
     register_commands(app)
     return app
+
+
+def upgrade_schema():
+    """Ajoute les colonnes apparues après la création de la base.
+
+    `db.create_all()` crée les tables manquantes mais ne modifie jamais une
+    table existante : cette mini-migration ajoute `faces_found` aux bases
+    créées par la version précédente. (À terme, Flask-Migrate fait ce travail
+    proprement.)
+    """
+    inspector = inspect(db.engine)
+    columns = {c['name'] for c in inspector.get_columns('analysis_result')}
+    if 'faces_found' not in columns:
+        with db.engine.begin() as connection:
+            connection.execute(text(
+                'ALTER TABLE analysis_result ADD COLUMN faces_found INTEGER'))
 
 
 def login_required(view):
@@ -272,6 +290,7 @@ def register_routes(app):
                 fake_score=verdict.fake_probability,
                 is_deepfake=verdict.is_deepfake,
                 frames_analyzed=verdict.frames_analyzed,
+                faces_found=verdict.faces_found,
                 details=verdict.details,
                 user_id=g.user.id))
             done += 1

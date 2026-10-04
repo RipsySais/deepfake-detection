@@ -13,6 +13,7 @@ env/
 .env
 instance/
 static/uploads/
+data/
 
 # Sources de Python (ne pas versionner)
 Python-3.11.0/

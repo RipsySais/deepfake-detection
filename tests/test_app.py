@@ -128,3 +128,49 @@ def test_detector_error_is_reported_not_stored(app, logged_client):
     with app.app_context():
         assert AnalysisResult.query.count() == 0
     assert os.listdir(app.config['UPLOAD_FOLDER']) == []
+
+
+def test_no_face_warning_is_shown(app, logged_client):
+    """Une image sans visage affiche l'alerte « peu fiable »."""
+    response = logged_client.post(
+        '/analyze',
+        data={'files': (png_bytes(), 'paysage.png')},
+        content_type='multipart/form-data',
+        follow_redirects=True)
+    with app.app_context():
+        assert AnalysisResult.query.one().faces_found == 0
+    assert 'Aucun visage détecté'.encode() in response.data
+    assert 'Peu fiable'.encode() in response.data
+
+
+def test_old_database_gets_new_column(tmp_path):
+    """Une base créée avant `faces_found` est migrée sans perte."""
+    import sqlite3
+
+    from app import create_app
+
+    db_path = tmp_path / 'old.db'
+    connection = sqlite3.connect(db_path)
+    connection.executescript(
+        'CREATE TABLE user (id INTEGER PRIMARY KEY, username VARCHAR(80), '
+        'email VARCHAR(120), password VARCHAR(128), verified BOOLEAN);'
+        'CREATE TABLE analysis_result (id INTEGER PRIMARY KEY, '
+        'filename VARCHAR(255), file_type VARCHAR(10), fake_score FLOAT, '
+        'is_deepfake BOOLEAN, frames_analyzed INTEGER, details VARCHAR(255), '
+        'timestamp DATETIME, user_id INTEGER);'
+        "INSERT INTO analysis_result VALUES (1, 'a.png', 'image', 0.4, 0, "
+        "1, 'x', '2026-10-03 19:51:00', 1);")
+    connection.commit()
+    connection.close()
+
+    application = create_app({
+        'TESTING': True,
+        'SECRET_KEY': 'k',
+        'SQLALCHEMY_DATABASE_URI': f'sqlite:///{db_path}',
+        'UPLOAD_FOLDER': str(tmp_path / 'up'),
+    })
+    with application.app_context():
+        row = AnalysisResult.query.one()
+        assert row.filename == 'a.png'
+        assert row.faces_found is None
+        db.session.remove()

@@ -38,6 +38,7 @@ class AnalysisResult(db.Model):
     fake_score = db.Column(db.Float, nullable=False)
     is_deepfake = db.Column(db.Boolean, nullable=False)
     frames_analyzed = db.Column(db.Integer, nullable=False, default=1)
+    faces_found = db.Column(db.Integer)
     details = db.Column(db.String(255))
     timestamp = db.Column(db.DateTime, default=_now, nullable=False)
     user_id = db.Column(

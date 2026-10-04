@@ -34,6 +34,7 @@ class Verdict:
     fake_probability: float
     is_deepfake: bool
     frames_analyzed: int
+    faces_found: int
     details: str
 
 
@@ -83,20 +84,34 @@ def _face_cascade():
     return cascade
 
 
-def crop_face(image):
-    """Retourne le plus grand visage de l'image (avec marge), sinon l'image."""
+def find_face(image):
+    """Retourne la boîte (x, y, w, h) du plus grand visage, ou None."""
     gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
     faces = _face_cascade().detectMultiScale(
         gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60))
     if len(faces) == 0:
-        return image
+        return None
     x, y, w, h = max(faces, key=lambda face: face[2] * face[3])
+    return int(x), int(y), int(w), int(h)
+
+
+def crop_to_box(image, box):
+    """Recadre l'image sur une boîte (x, y, w, h) avec 20 % de marge."""
+    x, y, w, h = box
     margin = int(0.2 * max(w, h))
-    left = max(int(x) - margin, 0)
-    top = max(int(y) - margin, 0)
-    right = min(int(x + w) + margin, image.width)
-    bottom = min(int(y + h) + margin, image.height)
+    left = max(x - margin, 0)
+    top = max(y - margin, 0)
+    right = min(x + w + margin, image.width)
+    bottom = min(y + h + margin, image.height)
     return image.crop((left, top, right, bottom))
+
+
+def crop_face(image):
+    """Retourne le plus grand visage de l'image (avec marge), sinon l'image."""
+    box = find_face(image)
+    if box is None:
+        return image
+    return crop_to_box(image, box)
 
 
 def sample_frames(path, max_frames):
@@ -184,17 +199,25 @@ class DeepfakeDetector:
                 self._classifier = build_pipeline_classifier(self.model_id)
             return self._classifier
 
-    def _prepare(self, image):
-        """Recadre sur le visage si l'option est activée."""
-        if self.use_face_crop:
-            return crop_face(image)
-        return image
-
     def _score(self, images):
-        """Retourne la probabilité de fake de chaque image."""
+        """Retourne (probabilités de fake, nombre d'images avec visage).
+
+        Le visage est toujours cherché, pour pouvoir avertir quand il n'y en
+        a pas ; il n'est recadré que si `use_face_crop` est activé.
+        """
         classifier = self.load()
-        prepared = [self._prepare(image) for image in images]
-        return [float(p) for p in classifier(prepared)]
+        prepared = []
+        faces_found = 0
+        for image in images:
+            box = find_face(image)
+            if box is not None:
+                faces_found += 1
+            if self.use_face_crop and box is not None:
+                prepared.append(crop_to_box(image, box))
+            else:
+                prepared.append(image)
+        probabilities = [float(p) for p in classifier(prepared)]
+        return probabilities, faces_found
 
     def analyze_image(self, path):
         """Analyse une image."""
@@ -203,23 +226,26 @@ class DeepfakeDetector:
                 image = source.convert('RGB')
         except (OSError, ValueError) as error:
             raise DetectorError('Image illisible ou corrompue.') from error
-        probability = self._score([image])[0]
+        probabilities, faces_found = self._score([image])
+        probability = probabilities[0]
         return Verdict(
             fake_probability=probability,
             is_deepfake=probability >= self.threshold,
             frames_analyzed=1,
+            faces_found=faces_found,
             details=f'Probabilité de manipulation : {probability:.0%}')
 
     def analyze_video(self, path):
         """Analyse une vidéo à partir d'images échantillonnées."""
         frames = sample_frames(path, self.max_frames)
-        probabilities = self._score(frames)
+        probabilities, faces_found = self._score(frames)
         mean = float(np.mean(probabilities))
         suspicious = sum(p >= self.threshold for p in probabilities)
         return Verdict(
             fake_probability=mean,
             is_deepfake=mean >= self.threshold,
             frames_analyzed=len(probabilities),
+            faces_found=faces_found,
             details=(f'{suspicious} image(s) suspecte(s) sur '
                      f'{len(probabilities)} analysée(s)'))
 

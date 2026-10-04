@@ -41,12 +41,35 @@ pytest
 pycodestyle .
 ```
 
+## Évaluer le détecteur
+
+`evaluate.py` mesure la qualité du modèle sur des images dont on connaît la
+nature. Préparez deux dossiers (ils sont ignorés par Git) :
+
+```
+data/eval/real/   vraies photos de visages (vos photos, avec accord)
+data/eval/fake/   visages générés par IA ou truqués
+```
+
+```bash
+python evaluate.py --real data/eval/real --fake data/eval/fake --csv resultats.csv
+```
+
+Le rapport donne la matrice de confusion, la sensibilité, la spécificité,
+la précision, le F1, l'AUC, l'effet du seuil et la liste des erreurs.
+Options : `--threshold 0.4`, `--no-face-crop`.
+
+Pour une mesure honnête, gardez le même format de fichier (par exemple JPEG)
+et une taille proche pour les deux dossiers : sinon le modèle peut séparer
+les formats au lieu des visages.
+
 ## Structure
 
 | Fichier | Rôle |
 |---|---|
 | `app.py` | Routes, authentification, `create_app` |
 | `detector.py` | Chargement du modèle, extraction d'images vidéo, scores |
+| `evaluate.py`, `metrics.py` | Évaluation du modèle et métriques |
 | `models.py` | Tables `User` et `AnalysisResult` |
 | `forms.py` | Formulaires de connexion et d'inscription |
 | `config.py` | Réglages lus dans `.env` |

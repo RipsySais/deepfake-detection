@@ -4,8 +4,9 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from detector import (DeepfakeDetector, DetectorError, crop_face, file_kind,
-                      sample_frames, fake_probability_from_scores)
+from detector import (DeepfakeDetector, DetectorError, crop_face,
+                      crop_to_box, fake_probability_from_scores, file_kind,
+                      sample_frames)
 from tests.conftest import fixed_classifier
 
 
@@ -101,3 +102,41 @@ def test_crop_face_returns_image_when_no_face():
     noise = Image.fromarray(rng.integers(0, 255, (128, 128, 3),
                                          dtype=np.uint8))
     assert crop_face(noise).size == (128, 128)
+
+
+def test_crop_to_box_adds_margin_and_stays_in_image():
+    """La boîte (10, 10, 40, 40) + 20 % de marge donne 56 x 56 pixels."""
+    image = Image.new('RGB', (64, 64))
+    assert crop_to_box(image, (10, 10, 40, 40)).size == (56, 56)
+
+
+def test_no_face_is_reported(tmp_path):
+    """Une image sans visage est signalée par faces_found = 0."""
+    path = tmp_path / 'img.png'
+    Image.new('RGB', (64, 64)).save(path)
+    assert make_detector(0.5).analyze_image(path).faces_found == 0
+
+
+def test_face_is_counted_and_cropped(tmp_path, monkeypatch):
+    """Avec un visage trouvé, l'image est recadrée avant classification."""
+    seen = []
+
+    def spy(images):
+        seen.extend(image.size for image in images)
+        return [0.5] * len(images)
+
+    monkeypatch.setattr('detector.find_face', lambda image: (10, 10, 40, 40))
+    detector = DeepfakeDetector('test', classifier=spy, use_face_crop=True)
+    path = tmp_path / 'img.png'
+    Image.new('RGB', (64, 64)).save(path)
+    assert detector.analyze_image(path).faces_found == 1
+    assert seen == [(56, 56)]
+
+
+def test_video_counts_frames_with_faces(tmp_path, monkeypatch):
+    """Pour une vidéo, faces_found compte les images où un visage existe."""
+    path = tmp_path / 'clip.avi'
+    make_video(path, frames=10)
+    monkeypatch.setattr('detector.find_face', lambda image: (5, 5, 30, 30))
+    verdict = make_detector(0.5, max_frames=4).analyze_video(str(path))
+    assert verdict.faces_found == verdict.frames_analyzed == 4

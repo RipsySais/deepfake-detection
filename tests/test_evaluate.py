@@ -62,3 +62,12 @@ def test_needs_both_classes(tmp_path, capsys):
         detector=make_detector())
     assert code == 1
     assert 'au moins un fichier réel' in capsys.readouterr().out
+
+
+def test_model_option_overrides_default():
+    """`--model` permet de pointer vers un dossier de modèle entraîné."""
+    args = evaluate.parse_args(
+        ['--real', 'a', '--fake', 'b', '--model', 'models/v1'])
+    assert args.model == 'models/v1'
+    default = evaluate.parse_args(['--real', 'a', '--fake', 'b'])
+    assert default.model == evaluate.Config.MODEL_ID

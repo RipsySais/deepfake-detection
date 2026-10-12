@@ -152,6 +152,9 @@ def parse_args(argv):
     parser.add_argument('--threshold', type=float,
                         default=Config.FAKE_THRESHOLD,
                         help='seuil de décision (défaut : %(default)s)')
+    parser.add_argument('--model', default=Config.MODEL_ID,
+                        help='identifiant Hugging Face ou dossier local '
+                             'du modèle (défaut : DEEPFAKE_MODEL)')
     parser.add_argument('--no-face-crop', action='store_true',
                         help='désactive le recadrage sur le visage')
     parser.add_argument('--csv', help='écrit le détail dans ce fichier CSV')
@@ -167,7 +170,7 @@ def main(argv=None, detector=None):
             return 2
     if detector is None:
         detector = DeepfakeDetector(
-            model_id=Config.MODEL_ID,
+            model_id=args.model,
             threshold=args.threshold,
             max_frames=Config.MAX_VIDEO_FRAMES,
             use_face_crop=Config.USE_FACE_CROP and not args.no_face_crop)

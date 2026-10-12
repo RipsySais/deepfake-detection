@@ -63,6 +63,26 @@ Pour une mesure honnête, gardez le même format de fichier (par exemple JPEG)
 et une taille proche pour les deux dossiers : sinon le modèle peut séparer
 les formats au lieu des visages.
 
+## Entraîner son propre modèle
+
+`train.py` réentraîne un réseau pré-entraîné (ConvNeXt-tiny) sur le dataset
+*140k Real and Fake Faces* avec des dégradations (JPEG, flou, réduction).
+Il faut un GPU : utilisez le notebook `notebooks/train_colab.ipynb` sur Google
+Colab (Exécution > Modifier le type d'exécution > GPU).
+
+Le modèle est sauvegardé au format Hugging Face. Pour l'utiliser :
+
+```bash
+python evaluate.py --real data/eval/real --fake data/eval/fake --model models/deepfake_v1
+```
+
+ou mettre `DEEPFAKE_MODEL=models/deepfake_v1` dans `.env` pour l'application.
+
+Limites : le dataset ne contient que des faux visages StyleGAN, donc le
+modèle peut être excellent sur son test et mauvais sur les générateurs
+récents. Les images réelles viennent de FFHQ, dont les licences autorisent
+l'usage non commercial : à revérifier avant toute publication commerciale.
+
 ## Structure
 
 | Fichier | Rôle |
@@ -70,6 +90,7 @@ les formats au lieu des visages.
 | `app.py` | Routes, authentification, `create_app` |
 | `detector.py` | Chargement du modèle, extraction d'images vidéo, scores |
 | `evaluate.py`, `metrics.py` | Évaluation du modèle et métriques |
+| `train.py`, `train_utils.py` | Entraînement et dégradations d'images |
 | `models.py` | Tables `User` et `AnalysisResult` |
 | `forms.py` | Formulaires de connexion et d'inscription |
 | `config.py` | Réglages lus dans `.env` |

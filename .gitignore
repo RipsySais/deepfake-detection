@@ -30,3 +30,9 @@ Thumbs.db
 # Fichiers temporaires
 *.tmp
 *.swp
+models/
+
+# Résultats d'évaluation (noms de vos photos)
+resultats*.csv
+res_*.csv
+rapport*.txt
